@@ -1,0 +1,25 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: metadata-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: metadata-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+config:
+  tmdb:
+    base-url: https://api.themoviedb.org/3
+    bearer: ${TMDB_TOKEN}
+    current-year: 2025
+    language: en-US
