@@ -5,10 +5,13 @@ spring:
   application:
     name: metadata-service
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: jdbc:mysql://localhost:3306/metadata_service_db
+    username: root
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -26,9 +29,13 @@ spring:
 config:
   tmdb:
     base-url: https://api.themoviedb.org/3
-    token: ${TMDB_TOKEN}
+    token: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZjdmY2Q2ZmZiZjFkOTJiMzY1MjI0ZmRlNjAwMzk2YiIsIm5iZiI6MTc2MDc1MTE0My43OTcsInN1YiI6IjY4ZjJlZTI3OTE2MTljZTJlNGJkODUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xzCEp1-ETignfgcB5kqxbSD5KbngIx2h23ME9ZW2_1A
     current-year: 2025
     language: en-US
   omdb:
     base-url: https://www.omdbapi.com/
-    token: ${OMDB_TOKEN}
+    token: 67c3da63
+
+logging:
+  level:
+    org.springframework.web.reactive.function.client.ExchangeFunctions: TRACE
