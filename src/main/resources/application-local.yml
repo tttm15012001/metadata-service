@@ -16,21 +16,24 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: metadata-crawler-group
+      group-id: metadata-service-group
       auto-offset-reset: earliest
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: '*'
     producer:
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    listener:
+      missing-topics-fatal: false
 
 config:
+  crawl:
+    current-year: 2025
   tmdb:
     base-url: https://api.themoviedb.org/3
     token: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZjdmY2Q2ZmZiZjFkOTJiMzY1MjI0ZmRlNjAwMzk2YiIsIm5iZiI6MTc2MDc1MTE0My43OTcsInN1YiI6IjY4ZjJlZTI3OTE2MTljZTJlNGJkODUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xzCEp1-ETignfgcB5kqxbSD5KbngIx2h23ME9ZW2_1A
-    current-year: 2025
     language: en-US
   omdb:
     base-url: https://www.omdbapi.com/

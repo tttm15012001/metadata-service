@@ -3,5 +3,5 @@ package com.metadataservice.service;
 import reactor.core.publisher.Mono;
 
 public interface MetadataService {
-    Mono<Void> crawl(String title, Integer year);
+    Mono<Void> crawl(Long movieId, String title, Integer year);
 }

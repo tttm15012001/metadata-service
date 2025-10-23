@@ -6,8 +6,10 @@
 CREATE TABLE IF NOT EXISTS metadata (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
+    movie_id BIGINT NOT NULL,
+    retrieved BOOLEAN,
     search_title VARCHAR(255),
-    tmdb_id INT NOT NULL,
+    tmdb_id INT,
     for_adult BOOLEAN,
     title VARCHAR(255),
     original_title VARCHAR(255),
@@ -28,5 +30,6 @@ CREATE TABLE IF NOT EXISTS metadata (
     created_date DATETIME NOT NULL,
     last_modified_date DATETIME NULL,
 
+    CONSTRAINT uq_metadata_movie_id UNIQUE (movie_id),
     CONSTRAINT uq_metadata_tmdb_id UNIQUE (tmdb_id)
 );

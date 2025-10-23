@@ -12,10 +12,13 @@ import java.util.Set;
 public interface MetadataRepository extends JpaRepository<Metadata, Long> {
 
     @Query("SELECT LOWER(m.title) FROM Metadata m")
-    Set<String> findAllTitles();
+    Set<String> findAllSearchTitle();
 
-    @Query("SELECT LOWER(m.searchTitle) FROM Metadata m")
-    Set<String> findAllSearchTitles();
+    @Query("SELECT LOWER(m.searchTitle) FROM Metadata m WHERE m.retrieved = FALSE")
+    Set<String> findAllSearchTitlesHasNoMetadata();
+
+    @Query("SELECT m FROM Metadata m WHERE m.searchTitle = :searchTitle")
+    Optional<Metadata> findBySearchTitle(String searchTitle);
 
     Optional<Metadata> findByTmdbId(Integer tmdbId);
 }

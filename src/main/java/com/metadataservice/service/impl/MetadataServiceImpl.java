@@ -3,10 +3,14 @@ package com.metadataservice.service.impl;
 import com.metadataservice.dto.OmdbSearchResponse;
 import com.metadataservice.dto.TmdbDetailSearchResponse;
 import com.metadataservice.dto.TmdbSearchResponse;
+import com.metadataservice.dto.kafka.CrawlMovieResultMessage;
+import com.metadataservice.exception.NotFoundException;
+import com.metadataservice.messaging.producer.CrawlMovieResultProducer;
 import com.metadataservice.model.entity.Metadata;
 import com.metadataservice.repository.MetadataRepository;
 import com.metadataservice.service.MetadataService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDate;
 
+import static com.metadataservice.common.constant.DatabaseConstants.TABLE_METADATA;
 
 @Service
 @Slf4j
@@ -38,16 +43,19 @@ public class MetadataServiceImpl implements MetadataService {
 
     private final MetadataRepository metadataRepository;
 
+    private final CrawlMovieResultProducer crawlMovieResultProducer;
 
     @Autowired
     public MetadataServiceImpl(
-        MetadataRepository metadataRepository
+        MetadataRepository metadataRepository,
+        CrawlMovieResultProducer crawlMovieResultProducer
     ) {
         this.metadataRepository = metadataRepository;
+        this.crawlMovieResultProducer = crawlMovieResultProducer;
     }
 
     @Override
-    public Mono<Void> crawl(String title, Integer year) {
+    public Mono<Void> crawl(Long movieId, String title, Integer year) {
         WebClient tmdbClient = WebClient.builder()
                 .baseUrl(tmdbBaseUrl)
                 .defaultHeader("Authorization", "Bearer " + tokenTmDb)
@@ -130,16 +138,26 @@ public class MetadataServiceImpl implements MetadataService {
             });
 
         return Mono.zip(tmdbDetail, omdb)
-                .map(tuple -> mergeMetadata(title, tuple.getT1(), tuple.getT2()))
-                .flatMap(this::saveOrUpdate)
+                .map(tuple -> mergeMetadata(movieId, title, tuple.getT1(), tuple.getT2()))
+                .flatMap(this::saveRetrievedData)
+                .flatMap(saved -> {
+                    var message = CrawlMovieResultMessage.builder()
+                        .movieId(movieId)
+                        .metadataId(saved.getId())
+                        .numberOfEpisodes(saved.getNumberOfEpisodes())
+                        .voteAverage(saved.getVoteAverage())
+                        .build();
+                    return crawlMovieResultProducer.sendCrawlResult(message);
+                })
                 .then();
     }
 
-    private Metadata mergeMetadata(String searchTitle, TmdbDetailSearchResponse tmdb, OmdbSearchResponse omdb) {
+    private Metadata mergeMetadata(Long movieId, String searchTitle, TmdbDetailSearchResponse tmdb, OmdbSearchResponse omdb) {
         if (tmdb == null) throw new RuntimeException("TMDb not found for: " + searchTitle);
         if (omdb == null) throw new RuntimeException("TMDb not found for: " + searchTitle);
 
         return Metadata.builder()
+                .movieId(movieId)
                 .searchTitle(searchTitle)
                 .tmdbId(tmdb.getId())
                 .forAdult(tmdb.getAdult())
@@ -161,16 +179,17 @@ public class MetadataServiceImpl implements MetadataService {
                 .build();
     }
 
-    private Mono<Metadata> saveOrUpdate(Metadata metadata) {
+    private Mono<Metadata> saveRetrievedData(Metadata metadata) {
+        String searchTitle = metadata.getSearchTitle();
         return Mono.fromCallable(() ->
-                metadataRepository.findByTmdbId(metadata.getTmdbId())
-                        .map(existing -> {
-                            existing.setDescription(metadata.getDescription());
-                            existing.setVoteAverage(metadata.getVoteAverage());
-                            existing.setPosterPath(metadata.getPosterPath());
-                            return metadataRepository.save(existing);
-                        })
-                        .orElseGet(() -> metadataRepository.save(metadata))
+            metadataRepository.findBySearchTitle(searchTitle)
+                .map(existing -> {
+                    existing.setVoteAverage(metadata.getVoteAverage());
+                    existing.setVoteCount(metadata.getVoteCount());
+                    existing.setPosterPath(metadata.getPosterPath());
+                    return metadataRepository.save(existing);
+                })
+                .orElseGet(() -> metadataRepository.save(metadata))
         ).subscribeOn(Schedulers.boundedElastic());
     }
 }
