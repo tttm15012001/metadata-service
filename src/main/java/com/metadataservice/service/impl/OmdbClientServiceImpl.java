@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -44,6 +43,7 @@ public class OmdbClientServiceImpl implements MetadataProvider {
     @Override
     public Mono<Metadata> fetch(Long movieId, String title, Integer year) {
         return apiClient.get(
+            movieId,
             client,
             "/",
             Map.of(
@@ -54,7 +54,7 @@ public class OmdbClientServiceImpl implements MetadataProvider {
             OmdbSearchResponse.class,
             "OMDb"
         ).map(response -> {
-            log.debug("[{}] - OMDb fetched successfully", title);
+            log.debug("[{}] - OMDb fetched successfully", movieId);
 
             return Metadata.builder()
                     .movieId(movieId)
@@ -66,24 +66,5 @@ public class OmdbClientServiceImpl implements MetadataProvider {
                     .actors(response.getActors())
                     .build();
         });
-    }
-
-    /**
-     * Parses OMDb release date (often format like "05 May 2012")
-     */
-    private LocalDate parseDate(String released) {
-        try {
-            if (released == null || released.equalsIgnoreCase("N/A")) {
-                return null;
-            }
-            // OMDb returns e.g. "05 May 2012"
-            return LocalDate.parse(
-                    released,
-                    java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")
-            );
-        } catch (Exception e) {
-            log.warn("Failed to parse OMDb release date '{}': {}", released, e.getMessage());
-            return null;
-        }
     }
 }

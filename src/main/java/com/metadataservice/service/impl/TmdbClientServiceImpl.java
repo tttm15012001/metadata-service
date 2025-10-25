@@ -40,6 +40,7 @@ public class TmdbClientServiceImpl implements MetadataProvider {
     @Override
     public Mono<Metadata> fetch(Long movieId, String title, Integer year) {
         return apiClient.get(
+            movieId,
             client,
             "/search/tv",
             Map.of(
@@ -53,6 +54,7 @@ public class TmdbClientServiceImpl implements MetadataProvider {
             var first = search.getResults().stream().findFirst()
                     .orElseThrow(() -> new RuntimeException("TMDb not found: " + title));
             return apiClient.get(
+                movieId,
                 client,
                 "/tv/" + first.getId(),
                 null,
@@ -60,7 +62,7 @@ public class TmdbClientServiceImpl implements MetadataProvider {
                 "TMDb Detail"
             );
         }).map(response -> {
-            log.debug("[{}] - TMDb fetched successfully", title);
+            log.debug("[{}] - TMDb fetched successfully", movieId);
 
             return Metadata.builder()
                     .movieId(movieId)

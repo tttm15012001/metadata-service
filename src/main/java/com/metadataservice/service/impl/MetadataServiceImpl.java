@@ -11,7 +11,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -19,27 +18,13 @@ import reactor.core.scheduler.Schedulers;
 import java.beans.PropertyDescriptor;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 @Service
 @Slf4j
 public class MetadataServiceImpl implements MetadataService {
-
-    @Value("${config.tmdb.base-url}")
-    private String tmdbBaseUrl;
-
-    @Value("${config.tmdb.token}")
-    private String tokenTmDb;
-
-    @Value("${config.omdb.base-url}")
-    private String omdbBaseUrl;
-
-    @Value("${config.omdb.token}")
-    private String tokenOmDb;
-
-    @Value("${config.tmdb.language}")
-    private String language;
 
     private final List<MetadataProvider> providers;
 
@@ -49,9 +34,9 @@ public class MetadataServiceImpl implements MetadataService {
 
     @Autowired
     public MetadataServiceImpl(
-        List<MetadataProvider> providers,
-        MetadataRepository metadataRepository,
-        CrawlMovieResultProducer crawlMovieResultProducer
+            List<MetadataProvider> providers,
+            MetadataRepository metadataRepository,
+            CrawlMovieResultProducer crawlMovieResultProducer
     ) {
         this.metadataRepository = metadataRepository;
         this.crawlMovieResultProducer = crawlMovieResultProducer;
@@ -59,23 +44,36 @@ public class MetadataServiceImpl implements MetadataService {
     }
 
     @Override
-    public Mono<Void> crawl(Long movieId, String title, Integer year) {
+    public Mono<Void> crawl(Long movieId, String title, Integer year, String responseTopic) {
         return Mono.zip(
             providers.stream()
                 .map(p -> p.fetch(movieId, title, year))
                 .collect(Collectors.toList()),
             this::mergeAllMetadata
         ).flatMap(this::saveRetrievedData)
-        .flatMap(saved -> {
-            var message = CrawlMovieResultMessage.builder()
-                .movieId(movieId)
-                .metadataId(saved.getId())
-                .numberOfEpisodes(saved.getNumberOfEpisodes())
-                .voteAverage(saved.getVoteAverage())
-                .build();
-            return crawlMovieResultProducer.sendCrawlResult(message);
-        })
+        .flatMap(saved -> this.returnRetrievedData(movieId, saved, responseTopic))
         .then();
+    }
+
+    @Override
+    public Optional<Metadata> getMetadataByMovieIdOrSearchTitle(Long movieId, String title) {
+        return metadataRepository.findByMovieIdOrSearchTitle(movieId, title);
+    }
+
+    @Override
+    public Mono<Void> returnRetrievedData(Long movieId, Metadata metadata, String responseTopic) {
+        var message = CrawlMovieResultMessage.builder()
+                .movieId(movieId)
+                .metadataId(metadata.getId())
+                .numberOfEpisodes(metadata.getNumberOfEpisodes())
+                .voteAverage(metadata.getVoteAverage())
+                .build();
+        return crawlMovieResultProducer.sendCrawlResult(movieId, message, responseTopic);
+    }
+
+    @Override
+    public Metadata saveMetadata(Metadata metadata) {
+        return this.metadataRepository.save(metadata);
     }
 
     private Metadata mergeAllMetadata(Object[] results) {
@@ -97,8 +95,9 @@ public class MetadataServiceImpl implements MetadataService {
 
     private Mono<Metadata> saveRetrievedData(Metadata metadata) {
         String searchTitle = metadata.getSearchTitle();
+        Long movieId = metadata.getMovieId();
         return Mono.fromCallable(() ->
-            metadataRepository.findBySearchTitle(searchTitle)
+            this.getMetadataByMovieIdOrSearchTitle(movieId, searchTitle)
                 .map(existing -> {
                     existing.setVoteAverage(metadata.getVoteAverage());
                     existing.setVoteCount(metadata.getVoteCount());
