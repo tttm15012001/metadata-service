@@ -27,6 +27,12 @@ public class Metadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected Long id;
 
+    @Column(unique = true, nullable = false, name = "movie_id")
+    protected Long movieId;
+
+    @Column(name = "retrieved")
+    protected Boolean retrieved;
+
     @Column(name = "search_title")
     protected String searchTitle;
 

@@ -13,28 +13,30 @@ import static com.metadataservice.common.constant.KafkaTopicConstants.TOPIC_MOVI
 
 @Component
 @Slf4j
-public class CrawlMovieConsumer {
+public class CrawlMovieRequestConsumer {
 
-    @Value("${config.tmdb.current-year}")
+    @Value("${config.crawl.current-year}")
     private Integer currentYear;
 
     private final MetadataService metadataService;
 
     @Autowired
-    public CrawlMovieConsumer(
+    public CrawlMovieRequestConsumer(
         MetadataService metadataService
     ) {
         this.metadataService = metadataService;
     }
 
-    @KafkaListener(topics = TOPIC_MOVIE_CRAWL_REQUEST, groupId = "metadata-crawler-group")
+    @KafkaListener(topics = TOPIC_MOVIE_CRAWL_REQUEST, groupId = "metadata-service-group")
     public void handleCrawlRequest(Map<String, Object> msg) {
         String title = (String) msg.get("title");
         Integer releaseYear = msg.get("releaseYear") != null ? (Integer) msg.get("releaseYear") : this.currentYear;
+        Number idValue = (Number) msg.get("movieId");
+        Long movieId = idValue != null ? idValue.longValue() : null;
 
-        System.out.println("[Consumer] Crawling metadata for: " + title + " (" + releaseYear + ")");
+        log.info("[Consumer] Crawling metadata for {} ({}) ", title, releaseYear);
 
-        metadataService.crawl(title, releaseYear)
+        metadataService.crawl(movieId, title, releaseYear)
             .doOnError(err -> log.error("Error crawl {}: {}", title, err.getMessage()))
             .doOnSuccess(v -> log.info("Save metadata successfully for: {}", title))
             .subscribe();

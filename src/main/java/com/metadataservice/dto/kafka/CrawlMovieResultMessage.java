@@ -1,43 +1,22 @@
 package com.metadataservice.dto.kafka;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-
-import java.util.List;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CrawlMovieResultMessage {
 
-    private Integer id;
+    private Long movieId;
 
-    private Boolean forAdult;
-
-    private String title;
-
-    private String originalTitle;
-
-    private String description;
+    private Long metadataId;
 
     private Integer numberOfEpisodes;
 
     private Double voteAverage;
 
-    private Integer voteCount;
-
-    private Double popularity;
-
-    private String posterPath;
-
-    private String backdropPath;
-
-    private String releaseDate;
-
-    private String country;
-
-    private String originalLanguage;
-
-    private List<Integer> genres;
-
-    private String requestedAt;
 }
