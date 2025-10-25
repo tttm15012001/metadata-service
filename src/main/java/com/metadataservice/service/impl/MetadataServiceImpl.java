@@ -1,10 +1,6 @@
 package com.metadataservice.service.impl;
 
-import com.metadataservice.dto.OmdbSearchResponse;
-import com.metadataservice.dto.TmdbDetailSearchResponse;
-import com.metadataservice.dto.TmdbSearchResponse;
 import com.metadataservice.dto.kafka.CrawlMovieResultMessage;
-import com.metadataservice.exception.NotFoundException;
 import com.metadataservice.messaging.producer.CrawlMovieResultProducer;
 import com.metadataservice.model.entity.Metadata;
 import com.metadataservice.repository.MetadataRepository;
@@ -17,17 +13,14 @@ import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.beans.PropertyDescriptor;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.metadataservice.common.constant.DatabaseConstants.TABLE_METADATA;
 
 @Service
 @Slf4j
