@@ -23,11 +23,11 @@ public class TmdbAggregateCreditsResponse {
     @AllArgsConstructor
     public static class Cast {
 
-        private Gender gender;
-
         private Integer id;
 
         private String name;
+
+        private Gender gender;
 
         @JsonProperty("original_name")
         private String originalName;

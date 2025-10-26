@@ -1,11 +1,20 @@
 package com.metadataservice.model.entity;
 
-import jakarta.persistence.*;
+import com.metadataservice.model.Gender;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.repository.Meta;
 
 import java.util.List;
 
@@ -28,8 +37,15 @@ public class Actor {
     @Column(name = "actor_id", nullable = false)
     protected Integer actorId;
 
-    @Column(name = "character")
-    protected String character;
+    @Column(name = "name")
+    protected String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    protected Gender gender;
+
+    @Column(name = "character_name")
+    protected String character_name;
 
     @Column(name = "profile_path")
     protected String profilePath;

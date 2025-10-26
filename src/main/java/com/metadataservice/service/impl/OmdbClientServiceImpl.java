@@ -56,15 +56,7 @@ public class OmdbClientServiceImpl implements MetadataProvider {
         ).map(response -> {
             log.debug("[{}] - OMDb fetched successfully", movieId);
 
-            return Metadata.builder()
-                    .movieId(movieId)
-                    .searchTitle(title)
-                    .posterPath(response.getPoster())
-                    .country(response.getCountry())
-                    .originalLanguage(response.getLanguage())
-                    .genre(response.getGenre())
-                    .actors(response.getActors())
-                    .build();
+            return Metadata.builder().build();
         });
     }
 }

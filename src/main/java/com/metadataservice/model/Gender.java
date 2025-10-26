@@ -1,7 +1,6 @@
 package com.metadataservice.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 @Getter
@@ -18,7 +17,7 @@ public enum Gender {
         this.label = label;
     }
 
-    @JsonCreator
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
     public static Gender fromCode(int code) {
         for (Gender gender : values()) {
             if (gender.code == code) {

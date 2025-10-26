@@ -1,6 +1,6 @@
--- remove old redundant column (if existed from legacy)
+-- remove old redundant column
 ALTER TABLE metadata
-DROP COLUMN IF EXISTS actors;
+DROP COLUMN actors;
 
 -- ============================
 -- ACTOR table
@@ -8,11 +8,12 @@ DROP COLUMN IF EXISTS actors;
 CREATE TABLE actor (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     actor_id INT NOT NULL,
-    character VARCHAR(255),
-    profile_path VARCHAR(500)
+    name VARCHAR(255),
+    gender VARCHAR(25),
+    character_name VARCHAR(255),
+    profile_path VARCHAR(500),
+    CONSTRAINT uq_actor_actor_id UNIQUE (actor_id)
 );
-
-CREATE UNIQUE INDEX idx_actor_actor_id ON actor (actor_id);
 
 -- ============================
 -- MAPPING table
@@ -38,4 +39,4 @@ CREATE TABLE metadata_actor_mapping (
 -- ============================
 CREATE INDEX idx_metadata_tmdb_id ON metadata (tmdb_id);
 CREATE INDEX idx_metadata_title ON metadata (title);
-CREATE INDEX idx_actor_name ON actor (character);
+CREATE INDEX idx_actor_name ON actor (character_name);

@@ -73,7 +73,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
             Integer tmdbId = first.getId();
 
             Map<String, EndpointSpec<?>> endpoints = Map.of(
-                    "general", new EndpointSpec<>("/tv" + tmdbId, TmdbDetailSearchResponse.class),
+                    "general", new EndpointSpec<>("/tv/" + tmdbId, TmdbDetailSearchResponse.class),
                     "aggregate_credits", new EndpointSpec<>("/tv/" + tmdbId + "/aggregate_credits", TmdbAggregateCreditsResponse.class),
                     "images", new EndpointSpec<>("/tv/" + tmdbId + "/images", TmdbImageResponse.class)
             );
@@ -89,7 +89,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
                     .collectMap(Map.Entry::getKey, Map.Entry::getValue);
 
             return resultsMono.map(results -> {
-                var detail = (TmdbDetailSearchResponse) results.get("detail");
+                var general = (TmdbDetailSearchResponse) results.get("general");
                 var images = (TmdbImageResponse) results.get("images");
                 var credits = (TmdbAggregateCreditsResponse) results.get("aggregate_credits");
 
@@ -101,22 +101,22 @@ public class TmdbMetadataProvider implements MetadataProvider {
                 return Metadata.builder()
                         .movieId(movieId)
                         .searchTitle(title)
-                        .tmdbId(detail.getId())
-                        .forAdult(detail.getAdult())
-                        .title(detail.getName())
-                        .originalTitle(detail.getOriginalName())
-                        .description(detail.getOverview())
-                        .numberOfEpisodes(detail.getNumberOfEpisodes())
-                        .voteAverage(detail.getVoteAverage())
-                        .voteCount(detail.getVoteCount())
-                        .popularity(detail.getPopularity())
+                        .tmdbId(general.getId())
+                        .forAdult(general.getAdult())
+                        .title(general.getName())
+                        .originalTitle(general.getOriginalName())
+                        .description(general.getOverview())
+                        .numberOfEpisodes(general.getNumberOfEpisodes())
+                        .voteAverage(general.getVoteAverage())
+                        .voteCount(general.getVoteCount())
+                        .popularity(general.getPopularity())
                         .posterPath(posterPath)
                         .backdropPath(backdropPath)
-                        .releaseDate(detail.getFirstAirDate() != null ? LocalDate.parse(detail.getFirstAirDate()) : null)
-                        .country(detail.getOriginCountry().get(0))
-                        .originalLanguage(detail.getOriginalLanguage())
-                        .genre(detail.getGenresAsString())
-                        .status(detail.getStatus())
+                        .releaseDate(general.getFirstAirDate() != null ? LocalDate.parse(general.getFirstAirDate()) : null)
+                        .country(general.getOriginCountry().get(0))
+                        .originalLanguage(general.getOriginalLanguage())
+                        .genre(general.getGenresAsString())
+                        .status(general.getStatus())
                         .actors(actors)
                         .build();
             });
@@ -143,10 +143,11 @@ public class TmdbMetadataProvider implements MetadataProvider {
 
                     return Actor.builder()
                             .actorId(cast.getId())
-                            .character(character)
+                            .name(cast.getName())
+                            .gender(cast.getGender())
+                            .character_name(character)
                             .profilePath(cast.getProfilePath())
                             .build();
-
                 })
                 .collect(Collectors.toList());
     }

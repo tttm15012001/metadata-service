@@ -116,7 +116,7 @@ public class MetadataServiceImpl implements MetadataService {
                         existing.setVoteAverage(metadata.getVoteAverage());
                         existing.setVoteCount(metadata.getVoteCount());
                         existing.setPosterPath(metadata.getPosterPath());
-                        existing.setActors(persistentActors); // update relations
+                        existing.setActors(persistentActors);
                         return metadataRepository.save(existing);
                     })
                     .orElseGet(() -> metadataRepository.save(metadata));
