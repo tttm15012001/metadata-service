@@ -9,6 +9,7 @@ import com.metadataservice.model.entity.Actor;
 import com.metadataservice.model.entity.Metadata;
 import com.metadataservice.repository.ActorRepository;
 import com.metadataservice.service.MetadataProvider;
+import com.metadataservice.utils.CommonUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +19,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.metadataservice.common.constant.ApiConstants.SEARCH_TV;
+import static com.metadataservice.common.constant.ApiConstants.TV_DETAIL;
+import static com.metadataservice.common.constant.ApiConstants.TV_CREDITS;
+import static com.metadataservice.common.constant.ApiConstants.TV_IMAGES;
 
 @Service
 @Slf4j
@@ -55,101 +60,97 @@ public class TmdbMetadataProvider implements MetadataProvider {
 
     @Override
     public Mono<Metadata> fetch(Long movieId, String title, Integer year) {
+        return searchSeries(movieId, title, year)
+            .flatMap(first -> fetchEndpoints(movieId, first.getId())
+                .map(results -> mapToMetadata(movieId, title, results)))
+            .doOnSuccess(meta -> log.debug("[{}] TMDb fetched successfully → {}", movieId, title));
+    }
+
+    private Mono<TmdbSearchResponse.Result> searchSeries(Long movieId, String title, Integer year) {
         return apiClient.get(
-                movieId,
-                client,
-                "/search/tv",
-                Map.of(
-                        "query", title,
-                        "year", year,
-                        "language", language
-                ),
-                TmdbSearchResponse.class,
-                "TMDb Master"
-        ).flatMap(search -> {
-            var first = search.getResults().stream().findFirst()
-                    .orElseThrow(() -> new RuntimeException("TMDb not found: " + title));
-
-            Integer tmdbId = first.getId();
-
-            Map<String, EndpointSpec<?>> endpoints = Map.of(
-                    "general", new EndpointSpec<>("/tv/" + tmdbId, TmdbDetailSearchResponse.class),
-                    "aggregate_credits", new EndpointSpec<>("/tv/" + tmdbId + "/aggregate_credits", TmdbAggregateCreditsResponse.class),
-                    "images", new EndpointSpec<>("/tv/" + tmdbId + "/images", TmdbImageResponse.class)
-            );
-
-            Mono<Map<String, Object>> resultsMono = Flux.fromIterable(endpoints.entrySet())
-                    .flatMap(entry -> apiClient.get(
-                            movieId,
-                            client,
-                            entry.getValue().getPath(),
-                            entry.getValue().getResponseType(),
-                            entry.getKey()
-                    ).map(result -> Map.entry(entry.getKey(), result)))
-                    .collectMap(Map.Entry::getKey, Map.Entry::getValue);
-
-            return resultsMono.map(results -> {
-                var general = (TmdbDetailSearchResponse) results.get("general");
-                var images = (TmdbImageResponse) results.get("images");
-                var credits = (TmdbAggregateCreditsResponse) results.get("aggregate_credits");
-
-                List<Actor> actors = mapActors(credits);
-
-                String posterPath = getPoster(images);
-                String backdropPath = getBackdrop(images);
-
-                return Metadata.builder()
-                        .movieId(movieId)
-                        .searchTitle(title)
-                        .tmdbId(general.getId())
-                        .forAdult(general.getAdult())
-                        .title(general.getName())
-                        .originalTitle(general.getOriginalName())
-                        .description(general.getOverview())
-                        .numberOfEpisodes(general.getNumberOfEpisodes())
-                        .voteAverage(general.getVoteAverage())
-                        .voteCount(general.getVoteCount())
-                        .popularity(general.getPopularity())
-                        .posterPath(posterPath)
-                        .backdropPath(backdropPath)
-                        .releaseDate(general.getFirstAirDate() != null ? LocalDate.parse(general.getFirstAirDate()) : null)
-                        .country(general.getOriginCountry().get(0))
-                        .originalLanguage(general.getOriginalLanguage())
-                        .genre(general.getGenresAsString())
-                        .status(general.getStatus())
-                        .actors(actors)
-                        .build();
-            });
-        }).doOnSuccess(v ->
-                log.debug("[{}] TMDb fetched successfully → {}", movieId, title)
+                movieId, client, SEARCH_TV,
+                Map.of("query", title, "year", year, "language", language),
+                TmdbSearchResponse.class, "TMDb Master"
+        ).map(search -> search.getResults().stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("TMDb not found: " + title))
         );
+    }
+
+    private Map<String, EndpointSpec<?>> buildEndpoints(Integer tmdbId) {
+        return Map.of(
+                "general", new EndpointSpec<>(String.format(TV_DETAIL, tmdbId), TmdbDetailSearchResponse.class),
+                "aggregate_credits", new EndpointSpec<>(String.format(TV_CREDITS, tmdbId), TmdbAggregateCreditsResponse.class),
+                "images", new EndpointSpec<>(String.format(TV_IMAGES, tmdbId), TmdbImageResponse.class)
+        );
+    }
+
+    private Mono<Map<String, Object>> fetchEndpoints(Long movieId, Integer tmdbId) {
+        Map<String, EndpointSpec<?>> endpoints = buildEndpoints(tmdbId);
+
+        return Flux.fromIterable(endpoints.entrySet())
+                .flatMap(entry -> apiClient.get(
+                        movieId, client,
+                        entry.getValue().getPath(),
+                        entry.getValue().getResponseType(),
+                        entry.getKey()
+                ).map(result -> Map.entry(entry.getKey(), result)))
+                .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    private Metadata mapToMetadata(Long movieId, String title, Map<String, Object> results) {
+        var general = (TmdbDetailSearchResponse) results.get("general");
+        var images = (TmdbImageResponse) results.get("images");
+        var credits = (TmdbAggregateCreditsResponse) results.get("aggregate_credits");
+
+        return Metadata.builder()
+                .movieId(movieId)
+                .searchTitle(title)
+                .tmdbId(general.getId())
+                .forAdult(general.getAdult())
+                .title(general.getName())
+                .originalTitle(general.getOriginalName())
+                .description(general.getOverview())
+                .numberOfEpisodes(general.getNumberOfEpisodes())
+                .voteAverage(general.getVoteAverage())
+                .voteCount(general.getVoteCount())
+                .popularity(general.getPopularity())
+                .posterPath(getPoster(images))
+                .backdropPath(getBackdrop(images))
+                .releaseDate(general.getFirstAirDate() != null ? LocalDate.parse(general.getFirstAirDate()) : null)
+                .country(CommonUtil.extractFirstFromList(general.getOriginCountry()))
+                .originalLanguage(general.getOriginalLanguage())
+                .genre(general.getGenresAsString())
+                .status(general.getStatus())
+                .actors(mapActors(credits))
+                .build();
     }
 
     private List<Actor> mapActors(TmdbAggregateCreditsResponse credits) {
         if (credits == null || credits.getCast() == null) return List.of();
 
         return credits.getCast().stream()
-                .limit(castLimit)
-                .map(cast -> {
-                    String character = "";
+            .limit(castLimit)
+            .map(cast -> {
+                String character = "";
 
-                    if (cast.getRoles() != null && !cast.getRoles().isEmpty()) {
-                        character = cast.getRoles().stream()
-                                .map(TmdbAggregateCreditsResponse.Cast.Role::getCharacter)
-                                .filter(c -> c != null && !c.isBlank())
-                                .distinct()
-                                .collect(Collectors.joining(", "));
-                    }
+                if (cast.getRoles() != null && !cast.getRoles().isEmpty()) {
+                    character = cast.getRoles().stream()
+                        .map(TmdbAggregateCreditsResponse.Cast.Role::getCharacter)
+                        .filter(c -> c != null && !c.isBlank())
+                        .distinct()
+                        .collect(Collectors.joining(", "));
+                }
 
-                    return Actor.builder()
-                            .actorId(cast.getId())
-                            .name(cast.getName())
-                            .gender(cast.getGender())
-                            .character_name(character)
-                            .profilePath(cast.getProfilePath())
-                            .build();
-                })
-                .collect(Collectors.toList());
+                return Actor.builder()
+                    .actorId(cast.getId())
+                    .name(cast.getName())
+                    .gender(cast.getGender())
+                    .character_name(character)
+                    .profilePath(cast.getProfilePath())
+                    .build();
+            })
+            .collect(Collectors.toList());
     }
 
     private String getPoster(TmdbImageResponse images) {
@@ -168,7 +169,6 @@ public class TmdbMetadataProvider implements MetadataProvider {
         return images.getBackdrops().get(0).getFilePath();
     }
 
-    // Generic endpoint holder
     @Data
     @AllArgsConstructor
     private static class EndpointSpec<T> {

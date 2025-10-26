@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class StringUtil {
+public class CommonUtil {
     public static List<String> convertStringToList(String input) {
         if (input == null || input.trim().isEmpty()) {
             return List.of();
@@ -24,5 +24,9 @@ public class StringUtil {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining(", "));
+    }
+
+    public static <T> T extractFirstFromList(List<T> list) {
+        return (list != null && !list.isEmpty()) ? list.get(0) : null;
     }
 }

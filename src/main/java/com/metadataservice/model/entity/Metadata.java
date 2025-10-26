@@ -1,7 +1,7 @@
 package com.metadataservice.model.entity;
 
 import com.metadataservice.dto.response.MetadataResponseDto;
-import com.metadataservice.utils.StringUtil;
+import com.metadataservice.utils.CommonUtil;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -125,7 +125,7 @@ public class Metadata {
                 .releaseDate(this.getReleaseDate())
                 .country(this.getCountry())
                 .originalLanguage(this.getOriginalLanguage())
-                .genre(StringUtil.convertStringToList(this.genre))
+                .genre(CommonUtil.convertStringToList(this.genre))
                 .status(this.getStatus())
                 .build();
     }
