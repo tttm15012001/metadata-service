@@ -7,7 +7,6 @@ import com.metadataservice.dto.TmdbImageResponse;
 import com.metadataservice.dto.TmdbSearchResponse;
 import com.metadataservice.model.entity.Actor;
 import com.metadataservice.model.entity.Metadata;
-import com.metadataservice.repository.ActorRepository;
 import com.metadataservice.service.MetadataProvider;
 import com.metadataservice.utils.CommonUtil;
 import lombok.AllArgsConstructor;
@@ -36,6 +35,15 @@ public class TmdbMetadataProvider implements MetadataProvider {
 
     @Value("${config.tmdb.cast-limit}")
     private Integer castLimit;
+
+    @Value("${config.tmdb.image-base-url}")
+    private String imageBaseUrl;
+
+    @Value("${config.tmdb.backdrop-size}")
+    private String backdropSize;
+
+    @Value("${config.tmdb.poster-size}")
+    private String posterSize;
 
     private final ReactiveApiClient apiClient;
 
@@ -153,12 +161,16 @@ public class TmdbMetadataProvider implements MetadataProvider {
             .collect(Collectors.toList());
     }
 
+    private String buildImageFullPath(String size, String path) {
+        return imageBaseUrl + size + path;
+    }
+
     private String getPoster(TmdbImageResponse images) {
         if (images == null || images.getPosters() == null || images.getPosters().isEmpty()) {
             return null;
         }
 
-        return images.getPosters().get(0).getFilePath();
+        return buildImageFullPath(posterSize, images.getPosters().get(0).getFilePath());
     }
 
     private String getBackdrop(TmdbImageResponse images) {
@@ -166,7 +178,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
             return null;
         }
 
-        return images.getBackdrops().get(0).getFilePath();
+        return buildImageFullPath(backdropSize, images.getBackdrops().get(0).getFilePath());
     }
 
     @Data

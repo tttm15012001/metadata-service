@@ -33,6 +33,9 @@ config:
     token: ${TMDB_TOKEN}
     language: en-US
     cast-limit: 5
+    image-base-url: https://image.tmdb.org/t/p/
+    poster-size: w300
+    backdrop-size: w1920
   omdb:
     base-url: https://www.omdbapi.com/
     token: ${OMDB_TOKEN}
