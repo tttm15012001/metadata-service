@@ -1,7 +1,7 @@
 package com.metadataservice.model.entity;
 
 import com.metadataservice.dto.response.MetadataResponseDto;
-import com.metadataservice.utils.StringUtil;
+import com.metadataservice.utils.CommonUtil;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +12,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.metadataservice.common.constant.DatabaseConstants.TABLE_METADATA;
 
@@ -30,8 +31,13 @@ public class Metadata {
     @Column(unique = true, nullable = false, name = "movie_id")
     protected Long movieId;
 
-    @Column(name = "retrieved")
-    protected Boolean retrieved;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "metadata_actor_mapping",
+        joinColumns = @JoinColumn(name = "metadata_id"),
+        inverseJoinColumns = @JoinColumn(name = "actor_id")
+    )
+    private List<Actor> actors;
 
     @Column(name = "search_title")
     protected String searchTitle;
@@ -81,9 +87,6 @@ public class Metadata {
     @Column(name = "genre")
     protected String genre;
 
-    @Column(name = "actors")
-    private String actors;
-
     @Column(name = "status")
     protected String status;
 
@@ -105,7 +108,7 @@ public class Metadata {
         this.lastModifiedDate = LocalDateTime.now();
     }
 
-    public MetadataResponseDto toMovieResponseDto() {
+    public MetadataResponseDto toMetadataResponseDto() {
         return MetadataResponseDto.builder()
                 .id(this.getId())
                 .tmdbId(this.getTmdbId())
@@ -122,8 +125,7 @@ public class Metadata {
                 .releaseDate(this.getReleaseDate())
                 .country(this.getCountry())
                 .originalLanguage(this.getOriginalLanguage())
-                .genre(StringUtil.convertStringToList(this.genre))
-                .actors(StringUtil.convertStringToList(this.actors))
+                .genre(CommonUtil.convertStringToList(this.genre))
                 .status(this.getStatus())
                 .build();
     }

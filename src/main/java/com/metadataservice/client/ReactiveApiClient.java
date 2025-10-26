@@ -30,6 +30,7 @@ public class ReactiveApiClient {
      * @return a reactive Mono of type T
      */
     public <T> Mono<T> get(
+            Long movieId,
             WebClient client,
             String path,
             Map<String, Object> params,
@@ -48,16 +49,16 @@ public class ReactiveApiClient {
             .onStatus(status -> !status.is2xxSuccessful(), response ->
                 response.bodyToMono(String.class)
                     .flatMap(body -> {
-                        log.error("[{}] - returned error {}:\n{}", source, response.statusCode(), body);
+                        log.error("[{}] - {} returned error {}:\n{}", movieId, source, response.statusCode(), body);
                         return Mono.error(new RuntimeException("[" + source + "]" + " - API error " + response.statusCode()));
                     })
             )
             .bodyToMono(clazz)
             .doOnNext(r -> {
                 try {
-                    log.info("[{}] - Call Successfully", source);
+                    log.info("[{}] - {} Call Successfully", movieId, source);
                 } catch (Exception e) {
-                    log.error("[{}] - Failed to log response", source, e);
+                    log.error("[{}] - {} Failed to log response", movieId, source, e);
                 }
             });
     }
@@ -65,7 +66,7 @@ public class ReactiveApiClient {
     /**
      * Overload for simple GETs without query params.
      */
-    public <T> Mono<T> get(WebClient client, String path, Class<T> clazz, String source) {
-        return get(client, path, null, clazz, source);
+    public <T> Mono<T> get(Long movieId, WebClient client, String path, Class<T> clazz, String source) {
+        return get(movieId, client, path, null, clazz, source);
     }
 }
