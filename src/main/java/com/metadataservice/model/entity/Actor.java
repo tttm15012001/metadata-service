@@ -34,7 +34,7 @@ public class Actor {
     @ManyToMany(mappedBy = "actors", fetch = FetchType.LAZY)
     private List<Metadata> metadata;
 
-    @Column(name = "actor_id", nullable = false)
+    @Column(name = "actor_id", unique = true, nullable = false)
     protected Integer actorId;
 
     @Column(name = "name")

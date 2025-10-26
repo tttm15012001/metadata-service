@@ -13,13 +13,16 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.beans.PropertyDescriptor;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -98,28 +101,57 @@ public class MetadataServiceImpl implements MetadataService {
             .toArray(String[]::new);
     }
 
-    private Mono<Metadata> saveRetrievedData(Metadata metadata) {
+    @Transactional
+    protected Mono<Metadata> saveRetrievedData(Metadata metadata) {
         String searchTitle = metadata.getSearchTitle();
         Long movieId = metadata.getMovieId();
 
         return Mono.fromCallable(() -> {
+            if (metadata.getActors() == null || metadata.getActors().isEmpty()) {
+                return getMetadataByMovieIdOrSearchTitle(movieId, searchTitle)
+                        .map(existing -> mergeAndSave(existing, metadata))
+                        .orElseGet(() -> metadataRepository.save(metadata));
+            }
+
+            List<Integer> actorIds = metadata.getActors().stream()
+                    .map(Actor::getActorId)
+                    .collect(Collectors.toList());
+
+            Map<Integer, Actor> existingActors = actorRepository.findByActorIdIn(actorIds)
+                    .stream()
+                    .collect(Collectors.toMap(Actor::getActorId, a -> a));
+
             List<Actor> persistentActors = metadata.getActors().stream()
-                    .map(actor -> actorRepository.findByActorId(actor.getActorId())
-                            .orElseGet(() -> actorRepository.save(actor))
-                    )
+                    .map(actor -> {
+                        Actor existing = existingActors.get(actor.getActorId());
+                        if (existing != null) {
+                            return existing;
+                        }
+
+                        try {
+                            return actorRepository.save(actor);
+                        } catch (DataIntegrityViolationException e) {
+                            log.warn("Another thread may have just inserted this actor");
+                            return actorRepository.findByActorId(actor.getActorId())
+                                    .orElseThrow(() -> e);
+                        }
+                    })
                     .collect(Collectors.toList());
 
             metadata.setActors(persistentActors);
 
             return this.getMetadataByMovieIdOrSearchTitle(movieId, searchTitle)
-                    .map(existing -> {
-                        existing.setVoteAverage(metadata.getVoteAverage());
-                        existing.setVoteCount(metadata.getVoteCount());
-                        existing.setPosterPath(metadata.getPosterPath());
-                        existing.setActors(persistentActors);
-                        return metadataRepository.save(existing);
-                    })
+                    .map(existing -> mergeAndSave(existing, metadata))
                     .orElseGet(() -> metadataRepository.save(metadata));
         }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Metadata mergeAndSave(Metadata existing, Metadata incoming) {
+        existing.setVoteAverage(incoming.getVoteAverage());
+        existing.setVoteCount(incoming.getVoteCount());
+        existing.setPosterPath(incoming.getPosterPath());
+        existing.setBackdropPath(incoming.getBackdropPath());
+        existing.setActors(incoming.getActors());
+        return metadataRepository.save(existing);
     }
 }
