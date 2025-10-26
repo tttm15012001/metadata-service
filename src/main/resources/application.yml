@@ -32,6 +32,7 @@ config:
     base-url: https://api.themoviedb.org/3
     token: ${TMDB_TOKEN}
     language: en-US
+    cast-limit: 5
   omdb:
     base-url: https://www.omdbapi.com/
     token: ${OMDB_TOKEN}

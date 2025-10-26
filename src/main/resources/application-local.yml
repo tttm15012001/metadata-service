@@ -35,6 +35,7 @@ config:
     base-url: https://api.themoviedb.org/3
     token: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZjdmY2Q2ZmZiZjFkOTJiMzY1MjI0ZmRlNjAwMzk2YiIsIm5iZiI6MTc2MDc1MTE0My43OTcsInN1YiI6IjY4ZjJlZTI3OTE2MTljZTJlNGJkODUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xzCEp1-ETignfgcB5kqxbSD5KbngIx2h23ME9ZW2_1A
     language: en-US
+    cast-limit: 5
   omdb:
     base-url: https://www.omdbapi.com/
     token: 67c3da63

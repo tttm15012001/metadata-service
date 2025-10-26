@@ -2,7 +2,9 @@ package com.metadataservice.service.impl;
 
 import com.metadataservice.dto.kafka.CrawlMovieResultMessage;
 import com.metadataservice.messaging.producer.CrawlMovieResultProducer;
+import com.metadataservice.model.entity.Actor;
 import com.metadataservice.model.entity.Metadata;
+import com.metadataservice.repository.ActorRepository;
 import com.metadataservice.repository.MetadataRepository;
 import com.metadataservice.service.MetadataProvider;
 import com.metadataservice.service.MetadataService;
@@ -21,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-
 @Service
 @Slf4j
 public class MetadataServiceImpl implements MetadataService {
@@ -32,15 +33,19 @@ public class MetadataServiceImpl implements MetadataService {
 
     private final CrawlMovieResultProducer crawlMovieResultProducer;
 
+    private final ActorRepository actorRepository;
+
     @Autowired
     public MetadataServiceImpl(
             List<MetadataProvider> providers,
             MetadataRepository metadataRepository,
-            CrawlMovieResultProducer crawlMovieResultProducer
+            CrawlMovieResultProducer crawlMovieResultProducer,
+            ActorRepository actorRepository
     ) {
         this.metadataRepository = metadataRepository;
         this.crawlMovieResultProducer = crawlMovieResultProducer;
         this.providers = providers;
+        this.actorRepository = actorRepository;
     }
 
     @Override
@@ -96,15 +101,25 @@ public class MetadataServiceImpl implements MetadataService {
     private Mono<Metadata> saveRetrievedData(Metadata metadata) {
         String searchTitle = metadata.getSearchTitle();
         Long movieId = metadata.getMovieId();
-        return Mono.fromCallable(() ->
-            this.getMetadataByMovieIdOrSearchTitle(movieId, searchTitle)
-                .map(existing -> {
-                    existing.setVoteAverage(metadata.getVoteAverage());
-                    existing.setVoteCount(metadata.getVoteCount());
-                    existing.setPosterPath(metadata.getPosterPath());
-                    return metadataRepository.save(existing);
-                })
-                .orElseGet(() -> metadataRepository.save(metadata))
-        ).subscribeOn(Schedulers.boundedElastic());
+
+        return Mono.fromCallable(() -> {
+            List<Actor> persistentActors = metadata.getActors().stream()
+                    .map(actor -> actorRepository.findByActorId(actor.getActorId())
+                            .orElseGet(() -> actorRepository.save(actor))
+                    )
+                    .collect(Collectors.toList());
+
+            metadata.setActors(persistentActors);
+
+            return this.getMetadataByMovieIdOrSearchTitle(movieId, searchTitle)
+                    .map(existing -> {
+                        existing.setVoteAverage(metadata.getVoteAverage());
+                        existing.setVoteCount(metadata.getVoteCount());
+                        existing.setPosterPath(metadata.getPosterPath());
+                        existing.setActors(persistentActors); // update relations
+                        return metadataRepository.save(existing);
+                    })
+                    .orElseGet(() -> metadataRepository.save(metadata));
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 }

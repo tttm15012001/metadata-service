@@ -24,11 +24,11 @@ public enum Genre {
     WESTERN(37, "Western");
 
     private final int id;
-    private final String displayName;
+    private final String name;
 
-    Genre(int id, String displayName) {
+    Genre(int id, String name) {
         this.id = id;
-        this.displayName = displayName;
+        this.name = name;
     }
 
     public static Genre fromId(int id) {
@@ -40,6 +40,6 @@ public enum Genre {
 
     public static String getGenreNameFromId(int id) {
         Genre genre = fromId(id);
-        return genre != null ? genre.getDisplayName() : "Unknown";
+        return genre != null ? genre.getName() : "Unknown";
     }
 }
