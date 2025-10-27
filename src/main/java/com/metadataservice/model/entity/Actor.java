@@ -1,5 +1,6 @@
 package com.metadataservice.model.entity;
 
+import com.metadataservice.dto.response.ActorResponseDto;
 import com.metadataservice.model.Gender;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -45,8 +46,18 @@ public class Actor {
     protected Gender gender;
 
     @Column(name = "character_name")
-    protected String character_name;
+    protected String characterName;
 
     @Column(name = "profile_path")
     protected String profilePath;
+
+    public ActorResponseDto toActorResponseDto() {
+        return ActorResponseDto.builder()
+                .id(this.getId())
+                .name(this.getName())
+                .profilePath(this.getProfilePath())
+                .characterName(this.getCharacterName())
+                .build();
+    }
+
 }

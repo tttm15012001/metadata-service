@@ -5,20 +5,19 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
-public class CustomDateFormat extends JsonSerializer<Date> {
+public class CustomDateFormat extends JsonSerializer<LocalDate> {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     @Override
-    public void serialize(Date value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(LocalDate value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         if (value == null) {
             gen.writeNull();
         } else {
-            String formattedDate = dateFormat.format(value);
-            gen.writeString(formattedDate);
+            gen.writeString(value.format(formatter));
         }
     }
 }

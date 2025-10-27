@@ -1,5 +1,6 @@
 package com.metadataservice.service;
 
+import com.metadataservice.dto.response.MetadataResponseDto;
 import com.metadataservice.model.entity.Metadata;
 import reactor.core.publisher.Mono;
 
@@ -14,4 +15,6 @@ public interface MetadataService {
     Optional<Metadata> getMetadataByMovieIdOrSearchTitle(Long movieId, String title);
 
     Metadata saveMetadata(Metadata metadata);
+
+    MetadataResponseDto getMetadataById(Long metadataId);
 }
