@@ -111,6 +111,14 @@ public class Metadata {
     public MetadataResponseDto toMetadataResponseDto() {
         return MetadataResponseDto.builder()
                 .id(this.getId())
+                .movieId(this.getMovieId())
+                .actors(
+                    this.actors != null
+                        ? this.actors.stream()
+                            .map(Actor::toActorResponseDto)
+                            .toList()
+                        : null
+                )
                 .tmdbId(this.getTmdbId())
                 .forAdult(this.getForAdult())
                 .title(this.getTitle())

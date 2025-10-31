@@ -154,7 +154,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
                     .actorId(cast.getId())
                     .name(cast.getName())
                     .gender(cast.getGender())
-                    .character_name(character)
+                    .characterName(character)
                     .profilePath(cast.getProfilePath())
                     .build();
             })

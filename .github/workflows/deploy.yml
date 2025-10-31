@@ -1,0 +1,106 @@
+name: Build and Deploy to ECR
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write   # OIDC
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Optional build phase
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build project
+        run: mvn -B package --file pom.xml
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::703671925000:role/RyanMovieDeployRole
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Compute next tag robustly: max(existing numeric suffix) + 1, fallback to run_number
+      - name: Compute next image tag
+        id: next
+        env:
+          ECR_REPO: ${{ secrets.ECR_REPOSITORY }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          echo "Fetching existing tags from ECR for repo: $ECR_REPO"
+
+          tags=$(aws ecr list-images \
+            --repository-name "$ECR_REPO" \
+            --filter tagStatus=TAGGED \
+            --query 'imageIds[].imageTag' \
+            --output text 2>/dev/null | tr '\t' '\n' || true)
+
+          echo "Existing tags:"
+          echo "${tags:-<none>}"
+
+          # Find the highest numeric suffix (skip 'latest')
+          num=$(echo "${tags:-}" | grep -v '^latest$' | grep -Eo '[0-9]+$' | sort -n | tail -1 || true)
+
+          if [ -z "${num:-}" ]; then
+            echo "No numeric tags found → first run, start from 1"
+            next=1
+          else
+            next=$((num + 1))
+            echo "Found highest existing numeric tag: $num → next: $next"
+          fi
+
+          image_tag="${ECR_REPO}-${next}"
+          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved image tag: $image_tag"
+
+      - name: Build, tag, and push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ steps.next.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          echo "Building image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build --no-cache -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+
+          echo "Tagging as latest"
+          docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+          echo "Pushing ..."
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+          echo "Pushed"
+          echo " - $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo " - $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          
+      # Force ECS service redeploy (no downtime)
+      - name: Force new deployment in ECS
+        env:
+          CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          echo "Forcing ECS redeployment for service $SERVICE_NAME in cluster $CLUSTER_NAME ..."
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$SERVICE_NAME" \
+            --force-new-deployment
+          echo "ECS service redeployment triggered successfully."

@@ -1,6 +1,8 @@
 package com.metadataservice.service.impl;
 
 import com.metadataservice.dto.kafka.CrawlMovieResultMessage;
+import com.metadataservice.dto.response.MetadataResponseDto;
+import com.metadataservice.exception.NotFoundException;
 import com.metadataservice.messaging.producer.CrawlMovieResultProducer;
 import com.metadataservice.model.entity.Actor;
 import com.metadataservice.model.entity.Metadata;
@@ -25,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static com.metadataservice.common.constant.DatabaseConstants.TABLE_METADATA;
 
 @Service
 @Slf4j
@@ -82,6 +86,13 @@ public class MetadataServiceImpl implements MetadataService {
     @Override
     public Metadata saveMetadata(Metadata metadata) {
         return this.metadataRepository.save(metadata);
+    }
+
+    @Override
+    public MetadataResponseDto getMetadataById(Long metadataId) {
+        Metadata metadata = this.metadataRepository.findByIdWithActors(metadataId)
+                .orElseThrow(() -> new NotFoundException(TABLE_METADATA, metadataId));
+        return metadata.toMetadataResponseDto();
     }
 
     private Metadata mergeAllMetadata(Object[] results) {

@@ -18,6 +18,8 @@ public class MetadataResponseDto {
 
     private Long id;
 
+    private Long movieId;
+
     private Integer tmdbId;
 
     private Boolean forAdult;
@@ -49,7 +51,7 @@ public class MetadataResponseDto {
 
     private List<String> genre;
 
-    private List<String> actors;
+    private List<ActorResponseDto> actors;
 
     private String status;
 }
