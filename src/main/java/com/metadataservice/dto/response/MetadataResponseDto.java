@@ -54,4 +54,20 @@ public class MetadataResponseDto {
     private List<ActorResponseDto> actors;
 
     private String status;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ActorResponseDto {
+
+        private Long id;
+
+        private String name;
+
+        private String profilePath;
+
+        private String characterName;
+
+    }
 }
