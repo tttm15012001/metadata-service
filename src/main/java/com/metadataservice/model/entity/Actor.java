@@ -1,6 +1,7 @@
 package com.metadataservice.model.entity;
 
-import com.metadataservice.dto.response.ActorResponseDto;
+import com.metadataservice.dto.response.MetadataResponseDto.ActorResponseDto;
+import com.metadataservice.dto.response.MetadataResponseDto;
 import com.metadataservice.model.Gender;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
