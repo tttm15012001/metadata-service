@@ -77,7 +77,7 @@ public class MetadataServiceImpl implements MetadataService {
         var message = CrawlMovieResultMessage.builder()
                 .movieId(movieId)
                 .metadataId(metadata.getId())
-                .numberOfEpisodes(metadata.getNumberOfEpisodes())
+                .genres(metadata.getGenre())
                 .voteAverage(metadata.getVoteAverage())
                 .build();
         return crawlMovieResultProducer.sendCrawlResult(movieId, message, responseTopic);

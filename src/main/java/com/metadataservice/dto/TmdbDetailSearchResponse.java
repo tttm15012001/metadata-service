@@ -1,14 +1,14 @@
 package com.metadataservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.metadataservice.model.Genre;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -66,8 +66,12 @@ public class TmdbDetailSearchResponse {
 
     public String getGenresAsString() {
         if (genres == null || genres.isEmpty()) return null;
-        return genres.stream()
-                .map(g -> Genre.getGenreNameFromId(g.getId()))
-                .collect(Collectors.joining(", "));
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(genres);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to convert genres to JSON", e);
+        }
     }
 }
