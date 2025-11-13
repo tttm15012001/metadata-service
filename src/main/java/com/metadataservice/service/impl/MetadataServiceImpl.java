@@ -76,6 +76,8 @@ public class MetadataServiceImpl implements MetadataService {
     public Mono<Void> returnRetrievedData(Long movieId, Metadata metadata, String responseTopic) {
         var message = CrawlMovieResultMessage.builder()
                 .movieId(movieId)
+                .title(metadata.getTitle())
+                .backdrop(metadata.getBackdropPath())
                 .metadataId(metadata.getId())
                 .genres(metadata.getGenre())
                 .voteAverage(metadata.getVoteAverage())

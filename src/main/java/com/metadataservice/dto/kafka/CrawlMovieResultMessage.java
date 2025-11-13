@@ -13,6 +13,10 @@ public class CrawlMovieResultMessage {
 
     private Long movieId;
 
+    private String title;
+
+    private String backdrop;
+
     private Long metadataId;
 
     private String genres;
