@@ -68,14 +68,6 @@
             <artifactId>flyway-mysql</artifactId>
         </dependency>
 
-        <!-- For Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.36</version>
-            <optional>true</optional>
-        </dependency>
-
         <!-- For Kafka -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>

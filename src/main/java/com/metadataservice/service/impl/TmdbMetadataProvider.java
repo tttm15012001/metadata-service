@@ -161,16 +161,12 @@ public class TmdbMetadataProvider implements MetadataProvider {
             .collect(Collectors.toList());
     }
 
-    private String buildImageFullPath(String size, String path) {
-        return imageBaseUrl + size + path;
-    }
-
     private String getPoster(TmdbImageResponse images) {
         if (images == null || images.getPosters() == null || images.getPosters().isEmpty()) {
             return null;
         }
 
-        return buildImageFullPath(posterSize, images.getPosters().get(0).getFilePath());
+        return images.getPosters().get(0).getFilePath();
     }
 
     private String getBackdrop(TmdbImageResponse images) {
@@ -178,7 +174,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
             return null;
         }
 
-        return buildImageFullPath(backdropSize, images.getBackdrops().get(0).getFilePath());
+        return images.getBackdrops().get(0).getFilePath();
     }
 
     @Data

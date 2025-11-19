@@ -13,9 +13,13 @@ public class CrawlMovieResultMessage {
 
     private Long movieId;
 
+    private String title;
+
+    private String backdrop;
+
     private Long metadataId;
 
-    private Integer numberOfEpisodes;
+    private String genres;
 
     private Double voteAverage;
 

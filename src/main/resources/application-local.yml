@@ -12,6 +12,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+  http:
+    codecs:
+      max-in-memory-size: 1MB
 
   kafka:
     bootstrap-servers: localhost:9092
